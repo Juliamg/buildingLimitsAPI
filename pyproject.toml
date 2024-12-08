@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "buildingsapi"
+version = "0.1.0"
+description = ""
+authors = ["Juliamg <julia.graham@live.no>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+flask = "^3.1.0"
+flask-restful = "^0.3.10"
+sqlalchemy = "^2.0.36"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
