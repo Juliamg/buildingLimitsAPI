@@ -4,7 +4,7 @@ from shapely import Polygon, to_wkt
 from typing import Tuple
 
 from app.models.db import BuildingLimit, HeightPlateau
-from app.services.database import get_db
+from app.services.database import get_db, SessionLocal
 from sqlalchemy import text
 from sqlalchemy.engine.row import Row
 
@@ -21,8 +21,8 @@ def shapely_to_geojson(geometry: Polygon):
 
 
 def query_building_resources(building_project_id: str,
-                            height_plateaus_ids: list[str]) -> Tuple[list[Row], list[Row]]:
-    db_session =get_db()
+                            height_plateaus_ids: list[str],
+                             db_session: SessionLocal) -> Tuple[list[Row], list[Row]]:
 
     height_plateaus_as_string = ", ".join(f"'{id}'" for id in height_plateaus_ids)
     _query_template: str = """SELECT * FROM {table_name} WHERE {column_name} in ({targets})"""
@@ -36,10 +36,3 @@ def query_building_resources(building_project_id: str,
                                                                           targets=height_plateaus_as_string))).all()
 
     return existing_building_project, existing_height_plateaus
-
-def assess_if_resources_exist(building_project_id: str,
-                              height_plateaus_ids: list[str]) -> bool:
-
-    existing_building_project, existing_height_plateaus = query_building_resources(building_project_id,
-                                                                                   height_plateaus_ids)
-    return (any(existing_building_project) and any(existing_height_plateaus))

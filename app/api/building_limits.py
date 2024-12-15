@@ -11,7 +11,8 @@ from app.services.database import get_db, SessionLocal
 from app.services.calculation import calculate_split_building_limits
 
 from app.models.db import BuildingLimit, HeightPlateau, SplitBuildingLimit
-from app.services.utils import shapely_to_wkt, assess_if_resources_exist
+from app.services.utils import shapely_to_wkt, query_building_resources
+from app.exceptions import BuildingResourceMissing
 
 router = APIRouter()
 
@@ -47,8 +48,8 @@ async def create_height_plateau(height_plateau: HeightPlateauInput, db: SessionL
     db_height_plateau = HeightPlateau(unique_hash=unique_identifier,
                                       geometry=shapely_to_wkt(height_plateau.feature.geometry.as_polygon(),
                                                               height_plateau.feature.geometry.sig_figs))
-    db.begin()
     try:
+        db.begin()
         if db.query(HeightPlateau).filter_by(unique_hash=unique_identifier).first():
             return UJSONResponse(status_code=409,
                                  content="Height plateau already exists")
@@ -63,7 +64,7 @@ async def create_height_plateau(height_plateau: HeightPlateauInput, db: SessionL
         db.close()
 
 
-@router.post("/create_split_building_limits", response_model=SplitBuildingLimitsOutput)
+@router.post("/create_split_building_limits", response_model=SplitBuildingLimitsOutput, status_code=201)
 async def create_split_building_limits(project: SplitBuildingLimitsInput, db: SessionLocal = Depends(get_db)):
     """Split building limits by height plateaus and assign elevations."""
     building_project = project.to_building_limit()
@@ -72,13 +73,16 @@ async def create_split_building_limits(project: SplitBuildingLimitsInput, db: Se
     building_project_id = building_project.__hash__()
     height_plateau_ids = [hp.__hash__() for hp in height_plateaus]
 
-    if not assess_if_resources_exist(building_project_id, height_plateau_ids):
-        raise Exception("Height plateaus or Building project are missing. Please create them first.")
-
-    split_limits = calculate_split_building_limits(building_project, height_plateaus)
-
-    db.begin()
     try:
+        db.begin()
+        existing_building_project, existing_height_plateaus = query_building_resources(building_project_id,
+                                                                                       height_plateau_ids, db)
+
+        if not (any(existing_building_project) and any(existing_height_plateaus)):
+            raise BuildingResourceMissing("Height plateaus or Building project are missing. Please create them first.")
+
+        split_limits = calculate_split_building_limits(building_project, height_plateaus)
+
         for split_limit_result in split_limits:
             db.add(SplitBuildingLimit(
                     geometry=shapely_to_wkt(split_limit_result.geometry.as_polygon(),
@@ -87,7 +91,10 @@ async def create_split_building_limits(project: SplitBuildingLimitsInput, db: Se
                 )
     except Exception as e:
         db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        if isinstance(e, BuildingResourceMissing):
+            raise HTTPException(status_code=404, detail=str(e))
+        else:
+            raise HTTPException(status_code=500, detail=str(e))
     else:
         db.commit()
         return SplitBuildingLimitsOutput(split_building_limits=split_limits,
