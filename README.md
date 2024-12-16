@@ -4,16 +4,15 @@
 1. Install dependencies (poetry must be installed): `poetry install` and activate with `poetry shell`
 2. Have a local database set up that you can connect to. In this project, MySQL was used for all DB tables.
 2. Create an `.env` file with an env variable `DB_CONNECTION_STRING` where you put your local DB connection string.
-2. Run the app from the command line with `uvicorn app.main:app --reload --env-file .env`
+2. Run the app from the command line with `uvicorn app.main:app --env-file .env`
 
-## Build a Docker image for deployment
-This project uses Buildpacks to build the docker image with a Procfile as the application entrypoint. 
-To get the necessary env variables mounted into the docker image, make sure you have exported the
-`DB_CONNECTION_STRING` first as it is passed into the builder as an env variable. If building from a github workflow,
-this secret string should be fetched from a key vault and set as an env variable before executing the build script from
-a GitHub action.
+## Build the Docker image
+This project uses Buildpacks to build a Docker image with a Procfile as the application entrypoint.
+Run the Docker image with the env variable `DB_CONNECTION_STRING` and `PORT` set.
+If building from a Github workflow, the connection string should be fetched from a key vault and set as an env variable
+before executing the build script from a GitHub action.
 
-To build the Docker image run the build.sh script in your terminal like so `./build.sh`
+To build the Docker image, run the build.sh script in your terminal; `./build.sh`
 
 ## Endpoints
 ### `POST /building_limit`
@@ -126,4 +125,4 @@ Example request body:
 ## Frameworks used
 - FastAPI as the API framework
 - Shapely for handling GeoJSON objects and for performing geometric operations on Polygon objects
-- Pydantic for data validation
+- Pydantic for schemas and data validation

@@ -14,4 +14,3 @@ echo "Building image $IMAGE:$TAG"
                            --buildpack paketo-buildpacks/source-removal \
                            --env BPE_APPEND_LD_LIBRARY_PATH=:/workspace/libs \
                            --path  app/ \
-                           --env "DB_CONNECTION_STRING" # Get this from a key vault or github secrets in the ci github workflow

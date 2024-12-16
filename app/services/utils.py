@@ -16,7 +16,7 @@ def shapely_to_wkt(geometry: Polygon, rounding_precision: int) -> str:
 def wkt_to_shapely(wkt: str) -> Polygon:
     return loads(wkt)
 
-def shapely_to_geojson(geometry: Polygon):
+def shapely_to_geojson(geometry: Polygon) -> dict:
     return mapping(geometry)
 
 
